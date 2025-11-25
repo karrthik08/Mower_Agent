@@ -105,6 +105,7 @@ Also, you may choose the serial port below for serial monitor output (CONSOLE).
 // Follow the steps described in the Wiki to verify your odometry returns approx. 1 meter distance for 
 // driving the same distance on the ground (without connected GPS): 
 // https://wiki.ardumower.de/index.php?title=Ardumower_Sunray#Odometry_test
+// https://wiki.ardumower.de/index.php?title=Ardumower_Sunray#Odometry_test
 // https://forum.ardumower.de/threads/andere-r%C3%A4der-wie-config-h-%C3%A4ndern.23865/post-41732
 
 // NOTE: if using non-default Ardumower chassis and your freewheel is at frontside (gear motors at backside), have may have to swap motor cables, 
@@ -326,6 +327,22 @@ Also, you may choose the serial port below for serial monitor output (CONSOLE).
 #define BAT_UNDERVOLTAGE  18.9  // battery switch off voltage
 #define BAT_FULL_CURRENT  -0.1   // start mowing again below this charging current (amps)
 #define BAT_FULL_SLOPE    0.002  // start mowing again below this voltage slope (V/min - choose 0.0 if you have charging issues)
+
+// -------- Enhancement 2: refined SIM battery model (linux sim only) --------
+// NOTE: This is for ASCII/Linux simulation. Real mower still uses voltage/current logic above.
+#ifdef DRV_SIM_ROBOT
+  #define ENABLE_BATTERY_REFINED 1
+  #define ENABLE_BATTERY_DEBUG   1
+
+  // battery percent model
+  #define BATTERY_FULL_PCT 100.0f
+  #define BATTERY_LOW_THRESHOLD_PCT 20.0f
+
+  // drain/charge tuning for sim
+  #define BATTERY_DRAIN_PER_M_PCT 0.01f      // % per meter driven
+  #define BATTERY_CHARGE_PER_SEC_PCT 0.05f   // % per second while charging
+#endif
+// -------------------------------------------------------------------------
 
 // https://wiki.ardumower.de/index.php?title=Ardumower_Sunray#Automatic_battery_switch_off
 #define BAT_SWITCH_OFF_IDLE  false         // switch off if idle (JP8 must be set to autom.)

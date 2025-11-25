@@ -992,6 +992,18 @@ bool Map::retryDocking(float stateX, float stateY){
   return true;
 }
 
+bool Map::isInsideDockingHotspot(float stateX, float stateY){
+  if (dockPoints.numPoints <= 0) return false;
+
+  Point robotPos;
+  robotPos.setXY(stateX, stateY);
+
+  Point dockPos;
+  dockPos.assign(dockPoints.points[0]);   // first dock waypoint = home
+
+  return (distance(robotPos, dockPos) <= DOCK_HOTSPOT_RADIUS);
+}
+
 
 bool Map::startDocking(float stateX, float stateY){  
   CONSOLE.println("Map::startDocking");
@@ -1003,6 +1015,22 @@ bool Map::startDocking(float stateX, float stateY){
   shouldRetryDock = false;
   shouldMow = false;    
   if (dockPoints.numPoints > 0){
+
+    if (isInsideDockingHotspot(stateX, stateY)) {
+      CONSOLE.println("startDocking: inside hotspot, skip path planning");
+      wayMode = WAY_DOCK;
+      dockPointsIdx = 0;
+      freePointsIdx = 0;
+      trackReverse = (!DOCK_FRONT_SIDE) && (dockPointsIdx >= dockPoints.numPoints-3);
+      trackSlow = true;
+      useGPSfixForPosEstimation = !DOCK_IGNORE_GPS;
+      useGPSfixForDeltaEstimation = !DOCK_IGNORE_GPS;
+      useGPSfloatForPosEstimation = false;
+      useGPSfloatForDeltaEstimation = false;
+      useIMU = true;
+      lastTargetPoint.setXY(stateX, stateY);
+      return true;
+    }
     if (wayMode == WAY_DOCK) {
       CONSOLE.println("skipping path planning to first docking point: already docking");    
       return true;
@@ -1119,7 +1147,7 @@ bool Map::isInsidePerimeterOutsideExclusions(Point &pt){
   if (!maps.pointIsInsidePolygon( maps.perimeterPoints, pt)) return false;    
 
   for (int idx=0; idx < maps.obstacles.numPolygons; idx++){
-    if (!maps.pointIsInsidePolygon( maps.obstacles.polygons[idx], pt)) return false;
+  if (maps.pointIsInsidePolygon(maps.obstacles.polygons[idx], pt)) return false;
   }
 
   for (int idx=0; idx < maps.exclusions.numPolygons; idx++){

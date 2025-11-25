@@ -12,6 +12,12 @@
 
 class Battery {
   public:
+  // --- ENH2: distance-based SOC drain ---
+void updateByDistance(float deltaMeters);
+void resetDistanceDrain();
+float distanceSOC;   // --- ENH2 ---
+  
+
     bool docked;    // robot in docking?
     bool batMonitor;
     float batGoHomeIfBelow;

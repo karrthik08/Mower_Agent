@@ -156,7 +156,7 @@ Also, you may choose the serial port below for serial monitor output (CONSOLE).
 //#define MOTOR_DRIVER_BRUSHLESS_MOW_DRV8308  1 // uncomment for brushless DRV8308 driver and mowing motor 
 //#define MOTOR_DRIVER_BRUSHLESS_MOW_A4931  1    // uncomment for brushless A3931 driver and mowing motor
 //#define MOTOR_DRIVER_BRUSHLESS_GEARS_DRV8308  1   // uncomment for brushless DRV8308 driver and gear/traction motors 
-//#define MOTOR_DRIVER_BRUSHLESS_GEARS_A4931  1   // uncomment for brushless A4931 driver and gear/traction motors
+//#define MOTOR_DRIVER_BRUSHLESS_GEARS_A4931  1   // uncomment for brushless A3931 driver and gear/traction motors
 
 #define MOTOR_FAULT_CURRENT 3.0    // gear motors fault current (amps)
 #define MOTOR_TOO_LOW_CURRENT 0.005   // gear motor too low current (amps), set to zero (0) to disable
@@ -341,6 +341,35 @@ Also, you may choose the serial port below for serial monitor output (CONSOLE).
 #define BAT_SWITCH_OFF_IDLE  false         // switch off if idle (JP8 must be set to autom.)
 #define BAT_SWITCH_OFF_UNDERVOLTAGE  true  // switch off if undervoltage (JP8 must be set to autom.)
 
+// ====== SIM BATTERY MODEL (Enhancement 2) ======
+// battery.cpp uses these ONLY when ENABLE_BATTERY_REFINED is defined AND SIM/Linux build.
+// If you don't want refined SIM battery behavior, comment ENABLE_BATTERY_REFINED.
+
+#ifndef ENABLE_BATTERY_REFINED
+  #define ENABLE_BATTERY_REFINED 1
+#endif
+
+// Percentage scale for SIM battery (0..100).
+#ifndef BATTERY_FULL_PCT
+  #define BATTERY_FULL_PCT 100.0f
+#endif
+
+// When percent <= this, Battery::shouldGoHome() becomes true in SIM.
+#ifndef BATTERY_LOW_THRESHOLD_PCT
+  #define BATTERY_LOW_THRESHOLD_PCT 20.0f
+#endif
+
+// Drain per meter traveled in SIM (percent per meter). 0.01 => ~10km per full charge.
+#ifndef BATTERY_DRAIN_PER_M_PCT
+  #define BATTERY_DRAIN_PER_M_PCT 0.01f
+#endif
+
+// Charge speed while docked in SIM (percent per second). 0.05 => ~33 min from 0 to 100.
+#ifndef BATTERY_CHARGE_PER_SEC_PCT
+  #define BATTERY_CHARGE_PER_SEC_PCT 0.05f
+#endif
+// ==============================================
+
 
 // ------ GPS ------------------------------------------
 // ------- RTK GPS module -----------------------------------
@@ -419,8 +448,7 @@ Also, you may choose the serial port below for serial monitor output (CONSOLE).
 #define DOCK_AUTO_START true     // robot will automatically continue mowing after docked automatically
 //#define DOCK_AUTO_START false      // robot will not automatically continue mowing after docked automatically
 
-
-#define AUTOSTART true
+// NOTE: AUTOSTART already defined at top. Do NOT redefine it here.
 #define DOCK_RETRY_TOUCH true   // robot will retry touching docking contacts (max. 1cm) if loosing docking contacts during charging
 //#define DOCK_RETRY_TOUCH false   // robot will not retry touching docking contacts (max. 1cm) if loosing docking contacts during charging
 

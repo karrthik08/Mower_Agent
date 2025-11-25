@@ -145,6 +145,11 @@ bool stateChargerConnected = false;
 float lastGPSMotionX = 0;
 float lastGPSMotionY = 0;
 unsigned long nextGPSMotionCheckTime = 0;
+// --- ENH2: battery drain by distance ---
+static bool enh2_posInit = false;
+static float enh2_lastX = 0.0f;
+static float enh2_lastY = 0.0f;
+static float enh2_totalDistanceM = 0.0f;
 
 bool testRelais = false;
 
@@ -1038,6 +1043,25 @@ void run(){
     stateEstimator.controlLoops++;    
     
     stateEstimator.computeRobotState();
+    // --- ENH2: distance-based battery drain ---
+if (!enh2_posInit) {
+  enh2_lastX = stateEstimator.stateX;
+  enh2_lastY = stateEstimator.stateY;
+  enh2_posInit = true;
+} else {
+  float dx = stateEstimator.stateX - enh2_lastX;
+  float dy = stateEstimator.stateY - enh2_lastY;
+  float d  = sqrt(dx*dx + dy*dy);  // meters
+
+  if (d > 0.001f) { // ignore noise
+    enh2_totalDistanceM += d;
+    enh2_lastX = stateEstimator.stateX;
+    enh2_lastY = stateEstimator.stateY;
+
+    battery.updateByDistance(d);   // ENH2 method
+  }
+}
+
     if (!robotShouldMove()){
       resetLinearMotionMeasurement();
       updateGPSMotionCheckTime();  
@@ -1062,11 +1086,13 @@ void run(){
     if (battery.chargerConnected() != stateChargerConnected) {    
       stateChargerConnected = battery.chargerConnected(); 
       if (stateChargerConnected){      
-        // charger connected event        
-        activeOp->onChargerConnected();                
-      } else {
-        activeOp->onChargerDisconnected();
-      }            
+  enh2_totalDistanceM = 0;
+  battery.resetDistanceDrain();   // ENH2 method
+  activeOp->onChargerConnected();                
+} else {
+  activeOp->onChargerDisconnected();
+}
+          
     }
     if (millis() > nextBadChargingContactCheck) {
       if (battery.badChargerContact()){
@@ -1095,15 +1121,19 @@ void run(){
           activeOp->onRainTriggered();                                                                              
         }                           
       }    
-      if (battery.shouldGoHome()){
-        activeOp->onBatteryLowShouldDock();        
-      }   
-       
-      if (battery.chargerConnected()){
-        if (battery.chargingHasCompleted()){
-          activeOp->onChargingCompleted();
-        }
-      }        
+      if (battery.shouldGoHome()) {
+  // tell current operation first (it may do cleanup)
+  activeOp->onBatteryLowShouldDock();
+
+  // HARD OVERRIDE: if not already docking/charging/idle, switch to dock now
+  if (stateEstimator.stateOp != OP_DOCK &&
+      stateEstimator.stateOp != OP_CHARGE &&
+      stateEstimator.stateOp != OP_IDLE) {
+    CONSOLE.println("LOW BATTERY: forcing OP_DOCK");
+    setOperation(OP_DOCK, false);
+  }
+
+}
     } 
 
     //CONSOLE.print("active:");

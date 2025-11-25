@@ -12,6 +12,17 @@
 #include <Arduino.h>
 #include <algorithm>
 
+// --- ENH2: distance-based drain model ---
+static float enh2_distAccumM = 0.0f;
+
+// meters traveled per 1% SOC drop (tune if needed)
+static const float ENH2_METERS_PER_PERCENT = 12.0f;
+
+// SOC thresholds (percent) for behavior
+static const float ENH2_GO_HOME_SOC = 30.0f;      // start docking
+static const float ENH2_UNDERVOLT_SOC = 5.0f;     // force undervoltage behavior
+
+
 
 // lithium akkus sollten bis zu einem bestimmten wert CC also constant current geladen werden 
 // und danach mit CV constant voltage
@@ -26,7 +37,7 @@
 // alfred:   Samsung INR18650-15M, 7 cells in series, nominal voltage 3.6v 
 
 void Battery::begin()
-{  
+{
   startupPhase = 0;
   nextBatteryTime = 0;
   nextCheckTime = 0;
@@ -58,9 +69,31 @@ void Battery::begin()
   switchOffByOperator = false;
   switchOffAllowedUndervoltage = BAT_SWITCH_OFF_UNDERVOLTAGE;
   switchOffAllowedIdle = BAT_SWITCH_OFF_IDLE;
+    // --- ENH2 init ---
+  distanceSOC = 100.0f;
+  enh2_distAccumM = 0.0f;
 
-  enableCharging(false);
-  resetIdle();    
+    enableCharging(false);
+  resetIdle();
+}  // <-- END OF Battery::begin()
+
+// --- ENH2: reset distance drain (called when charger connects) ---
+void Battery::resetDistanceDrain() {
+  enh2_distAccumM = 0.0f;
+  distanceSOC = 100.0f;   // treat dock/charge as full reset in sim
+}
+
+// --- ENH2: drain SOC by distance traveled ---
+void Battery::updateByDistance(float deltaMeters) {
+  if (deltaMeters <= 0) return;
+
+  enh2_distAccumM += deltaMeters;
+
+  while (enh2_distAccumM >= ENH2_METERS_PER_PERCENT) {
+    enh2_distAccumM -= ENH2_METERS_PER_PERCENT;
+    distanceSOC -= 1.0f;
+    if (distanceSOC < 0.0f) distanceSOC = 0.0f;
+  }
 }
 
 
@@ -98,14 +131,24 @@ bool Battery::chargingHasCompleted(){
  
 
 bool Battery::shouldGoHome(){
-  if (startupPhase < 2) return false;  
+  if (startupPhase < 2) return false;
+
+  // voltage OR distance SOC
+  if (distanceSOC <= ENH2_GO_HOME_SOC) return true;
+
   return (batteryVoltage < batGoHomeIfBelow);
 }
 
+
 bool Battery::underVoltage(){
   if (startupPhase < 2) return false;
+
+  // voltage OR distance SOC
+  if (distanceSOC <= ENH2_UNDERVOLT_SOC) return true;
+
   return (batteryVoltage < batSwitchOffIfBelow);
 }
+
 
 void Battery::resetIdle(){
   switchOffTime = millis() + batSwitchOffIfIdle * 1000;    

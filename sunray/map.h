@@ -10,6 +10,8 @@
 #include <Arduino.h>
 #include <SD.h>
 
+#define DOCK_HOTSPOT_RADIUS 1.0f   // meters
+
 
 // waypoint type
 enum WayType {WAY_PERIMETER, WAY_EXCLUSION, WAY_DOCK, WAY_MOW, WAY_FREE};
@@ -123,6 +125,9 @@ class NodeList  // owns nodes!
 class Map
 {
   public:    
+    // Enh3: true if robot is close enough to dock to start docking directly
+    bool isInsideDockingHotspot(float stateX, float stateY);
+
     // current waypoint mode (dock, mow, free)
     WayType wayMode;
     
