@@ -1,0 +1,5 @@
+{
+  "battery_level": 40,
+  "battery_low_threshold_percent": 30.0,
+  "battery_drain_rate": 0.01
+}
