@@ -1,7 +1,8 @@
 CMakeFiles/sunray.dir/src/ble/queue.c.o: \
- /home/fayaaz/Sunray/linux/src/ble/queue.c /usr/include/stdc-predef.h \
- /home/fayaaz/Sunray/linux/src/ble/util.h \
- /usr/lib/gcc/aarch64-linux-gnu/11/include/stdint.h /usr/include/stdint.h \
+ /home/karrthik/Downloads/Sunray/linux/src/ble/queue.c \
+ /usr/include/stdc-predef.h \
+ /home/karrthik/Downloads/Sunray/linux/src/ble/util.h \
+ /usr/lib/gcc/aarch64-linux-gnu/13/include/stdint.h /usr/include/stdint.h \
  /usr/include/aarch64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
  /usr/include/aarch64-linux-gnu/bits/wordsize.h \
@@ -15,8 +16,9 @@ CMakeFiles/sunray.dir/src/ble/queue.c.o: \
  /usr/include/aarch64-linux-gnu/bits/time64.h \
  /usr/include/aarch64-linux-gnu/bits/wchar.h \
  /usr/include/aarch64-linux-gnu/bits/stdint-intn.h \
- /usr/include/aarch64-linux-gnu/bits/stdint-uintn.h /usr/include/stdlib.h \
- /usr/lib/gcc/aarch64-linux-gnu/11/include/stddef.h \
+ /usr/include/aarch64-linux-gnu/bits/stdint-uintn.h \
+ /usr/include/aarch64-linux-gnu/bits/stdint-least.h /usr/include/stdlib.h \
+ /usr/lib/gcc/aarch64-linux-gnu/13/include/stddef.h \
  /usr/include/aarch64-linux-gnu/bits/waitflags.h \
  /usr/include/aarch64-linux-gnu/bits/waitstatus.h \
  /usr/include/aarch64-linux-gnu/bits/floatn.h \
@@ -43,9 +45,10 @@ CMakeFiles/sunray.dir/src/ble/queue.c.o: \
  /usr/include/aarch64-linux-gnu/bits/struct_mutex.h \
  /usr/include/aarch64-linux-gnu/bits/struct_rwlock.h \
  /usr/include/alloca.h /usr/include/aarch64-linux-gnu/bits/stdlib-float.h \
- /usr/lib/gcc/aarch64-linux-gnu/11/include/stdarg.h \
+ /usr/lib/gcc/aarch64-linux-gnu/13/include/stdarg.h \
  /usr/include/byteswap.h /usr/include/string.h \
  /usr/include/aarch64-linux-gnu/bits/types/locale_t.h \
  /usr/include/aarch64-linux-gnu/bits/types/__locale_t.h \
- /usr/include/strings.h /home/fayaaz/Sunray/linux/src/ble/queue.h \
- /usr/lib/gcc/aarch64-linux-gnu/11/include/stdbool.h
+ /usr/include/strings.h \
+ /home/karrthik/Downloads/Sunray/linux/src/ble/queue.h \
+ /usr/lib/gcc/aarch64-linux-gnu/13/include/stdbool.h

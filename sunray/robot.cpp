@@ -43,6 +43,15 @@
 #include "bumper.h"
 #include "mqtt.h"
 #include "events.h"
+#include "coverage_planner.h"
+#include "schedule_manager.h"
+
+static CoveragePlanner coveragePlanner;
+static ScheduleManager scheduleManager;
+
+// simulated clock for scheduling
+static int simMinutes = 0;
+static int loopCount  = 0;
 
 // #define I2C_SPEED  10000
 #define _BV(x) (1 << (x))
@@ -929,6 +938,32 @@ bool detectObstacleRotation(){
 
 // robot main loop
 void run(){  
+
+  static bool phase3InitDone = false;
+    if (!phase3InitDone) {
+        // TEMP: hard-coded bounds until we hook real map values
+        // adjust these numbers if your lawn is bigger/smaller
+        float minX = -3.0f;
+        float maxX =  3.0f;
+        float minY = -3.0f;
+        float maxY =  3.0f;
+        float rowSpacing = 0.5f;    // 0.5 m between passes
+
+        coveragePlanner.initFromBounds(minX, maxX, minY, maxY, rowSpacing);
+
+        // allow mowing from 08:00–10:00
+        scheduleManager.setWindow(8, 0, 10, 0);
+
+        phase3InitDone = true;
+    }
+
+    // --- simulated time for ScheduleManager ---
+    loopCount++;
+    if (loopCount >= 100) {        // every 100 iterations => +1 minute
+        loopCount = 0;
+        simMinutes = (simMinutes + 1) % 1440;
+    }
+
   
   #ifdef ENABLE_NTRIP
     if (millis() > nextGenerateGGATime){

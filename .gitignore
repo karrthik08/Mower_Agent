@@ -1,0 +1,20 @@
+# Ignore build artifacts
+linux/build/
+**/build/
+*.o
+*.obj
+*.exe
+*.bin
+*.log
+
+# Generated files
+position.txt
+sunray
+
+# CMake artifacts
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+install_manifest.txt
+linux/build/

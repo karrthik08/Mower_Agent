@@ -1,4 +1,4 @@
-# Install script for directory: /home/fayaaz/Sunray/linux
+# Install script for directory: /home/karrthik/Downloads/Sunray/linux
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/fayaaz/Sunray/linux/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/karrthik/Downloads/Sunray/linux/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

@@ -1,6 +1,5 @@
 // Ardumower Sunray
-// Copyright...
-// GPLv3...
+// (header comments omitted for brevity)
 
 #include "config.h"
 #include "robot.h"
@@ -14,102 +13,176 @@ extern Battery battery;
 #include <unistd.h>
 #include <fstream>
 
-// Draw ASCII map
+// ----------------------------------------------------------
+// Grid settings
+// ----------------------------------------------------------
+const int    GRID_SIZE   = 20;   // 20 x 20 cells
+const double GRID_SCALE  = 1.0;  // 1 meter per cell
+bool visited[GRID_SIZE][GRID_SIZE] = {false};
+
+// ----------------------------------------------------------
+// Compute coverage (%) from visited[][]
+// ----------------------------------------------------------
+double computeCoverage() {
+  int coveredCount = 0;
+  for (int r = 0; r < GRID_SIZE; r++) {
+    for (int c = 0; c < GRID_SIZE; c++) {
+      if (visited[r][c]) coveredCount++;
+    }
+  }
+  return (double)coveredCount / (GRID_SIZE * GRID_SIZE) * 100.0;
+}
+
+// ----------------------------------------------------------
+// Draw ASCII map + coverage + battery
+// ----------------------------------------------------------
 void drawAsciiMap(double x, double y) {
-    const int size = 20;
-    const int scale = 1;
-    const char mower = 'M';
+  const char mower = 'M';
 
-    std::system("clear");
-    std::cout << "Sunray ASCII Simulator\n";
-    std::cout << "Use keys: o=obstacle, r=rain, l=lowbat, Ctrl+C=exit\n\n";
+  // compute grid cell for robot
+  int px = static_cast<int>(std::round(x * GRID_SCALE));
+  int py = static_cast<int>(std::round(y * GRID_SCALE));
 
-    for (int j = size - 1; j >= 0; j--) {
-        for (int i = 0; i < size; i++) {
-            int px = static_cast<int>(std::round(x * scale));
-            int py = static_cast<int>(std::round(y * scale));
+  // clamp to grid and mark visited
+  if (px >= 0 && px < GRID_SIZE && py >= 0 && py < GRID_SIZE) {
+    visited[py][px] = true;
+  }
 
-            if (i == px && j == py)
-                std::cout << mower;
-            else
-                std::cout << '.';
-        }
-        std::cout << '\n';
+  std::system("clear");
+  std::cout << "Sunray ASCII Simulator\n";
+  std::cout << "Use keys: o=obstacle, r=rain, l=lowbat, Ctrl+C=exit\n\n";
+
+  for (int j = GRID_SIZE - 1; j >= 0; j--) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+      if (i == px && j == py) {
+        std::cout << mower;          // robot here
+      } else if (visited[j][i]) {
+        std::cout << '*';            // already covered
+      } else {
+        std::cout << '.';            // not visited
+      }
     }
+    std::cout << '\n';
+  }
 
-    // Print position + battery %
-    std::cout << "\nRobot position (x,y): "
-              << std::fixed << std::setprecision(2)
-              << x << ", " << y << std::endl;
+  double percent = computeCoverage();
 
-    std::cout << "Battery: "
-              << std::fixed << std::setprecision(0)
-              << battery.distanceSOC << "%\n";
+  std::cout << "\nCoverage: " << std::fixed << std::setprecision(1)
+            << percent << "%\n";
+
+  std::cout << "Robot position (x,y): " << std::fixed << std::setprecision(2)
+            << x << ", " << y << std::endl;
+
+  std::cout << "Battery: " << std::fixed << std::setprecision(0)
+            << battery.distanceSOC << "%\n";
 }
 
-
+// ----------------------------------------------------------
 // Setup
+// ----------------------------------------------------------
 void setup() {
-    start(); // initialize real robot core (stateEstimator, battery, ops, etc.)
+  start(); // initialize real robot core (stateEstimator, battery, ops, etc.)
+  battery.distanceSOC = 100;  // start full battery
 
-    battery.distanceSOC = 100;  // start full battery
-
-    CONSOLE.println("Forcing mower to start in MowOp mode...");
-    setOperation(OP_MOW);
+  CONSOLE.println("Forcing mower to start in MowOp mode...");
+  setOperation(OP_MOW);
 }
 
-
+// ----------------------------------------------------------
 // Main simulation loop
+// ----------------------------------------------------------
 void loop() {
-    static double x = 0.0, y = 0.0;
-    static double vx = 0.15, vy = 0.10;
-    static double maxX = 10.0, maxY = 10.0;
+  static double x = 0.0, y = 0.0;
 
-    // 1. Move robot
-    x += vx;
-    y += vy;
+  // FIELD SIZE: sweep full 20x20 grid (0..19)
+  static const double maxX = GRID_SIZE - 1; // 19
+  static const double maxY = GRID_SIZE - 1; // 19
 
-    // 2. Battery drain based on movement
-    double distance = std::sqrt(vx*vx + vy*vy);
-    battery.updateByDistance(distance);
+  // serpentine sweep state
+  static bool   goingRight = true;  // true = move +x, false = move -x
+  static double rowStep    = 0.5;   // 1 cell between rows
+  static double speed      = 0.15;   // 1 cell per step
 
-    // 3. Bounce boundaries
-    if (x > maxX || x < 0) vx = -vx;
-    if (y > maxY || y < 0) vy = -vy;
+  // remember old position for distance calc
+  double prevX = x;
+  double prevY = y;
 
-    // 4. Auto-dock when SOC <= 30%
-    if (battery.distanceSOC <= 30.0) {
-        std::cout << "\nLOW BATTERY → Returning to HOME (0,0)...\n";
+  // ------------------------------------------------------
+  // 1. Decide: still mowing or done (100% coverage)?
+  // ------------------------------------------------------
+  double coverage = computeCoverage();
+  bool coverageDone = (coverage >= 99.9);  // treat as 100%
 
-        // Stop normal wandering
-        vx = 0;
-        vy = 0;
+  if (coverageDone) {
+    // -------------------------
+    // Go home after full coverage
+    // -------------------------
+    std::cout << "\nCOVERAGE 100% → Returning to HOME (0,0)...\n";
 
-        // Move robot toward home
-        x -= (x * 0.1);
-        y -= (y * 0.1);
+    // simple proportional move toward home
+    x -= x * 0.2;
+    y -= y * 0.2;
 
-        // Check if close to home
-        if (x < 0.5 && y < 0.5) {
-            x = 0; 
-            y = 0;
-            std::cout << "Docked at HOME.\n";
-            drawAsciiMap(x, y);
-            usleep(500000);
-            return;
-        }
+    // Check if close to home
+    if (std::fabs(x) < 0.1 && std::fabs(y) < 0.1) {
+      x = 0.0;
+      y = 0.0;
+      std::cout << "Docked at HOME after full coverage.\n";
+      drawAsciiMap(x, y);
+      usleep(500000);
+      return;
     }
 
-    // 5. Draw ASCII grid
-    drawAsciiMap(x, y);
-
-    // 6. Output position for external visualizers
-    std::ofstream posFile("position.txt");
-    if (posFile.is_open()) {
-        posFile << x << "," << y;
-        posFile.close();
+  } else {
+    // -------------------------
+    // Normal serpentine coverage
+    // -------------------------
+    if (goingRight) {
+      x += speed;
+      if (x >= maxX) {
+        x = maxX;
+        y += rowStep;
+        goingRight = false;
+      }
+    } else {
+      x -= speed;
+      if (x <= 0.0) {
+        x = 0.0;
+        y += rowStep;
+        goingRight = true;
+      }
     }
 
-    // Slow down simulation
-    usleep(100000);
+    // clamp y so we don't walk off the grid
+    if (y > maxY) {
+      y = maxY;
+    }
+  }
+
+  // ------------------------------------------------------
+  // 2. Battery drain based on movement  (info only now)
+  // ------------------------------------------------------
+  double dx = x - prevX;
+  double dy = y - prevY;
+  double distance = std::sqrt(dx * dx + dy * dy);
+  battery.updateByDistance(distance);
+
+  // ------------------------------------------------------
+  // 3. Draw ASCII grid + coverage + battery
+  // ------------------------------------------------------
+  drawAsciiMap(x, y);
+
+  // ------------------------------------------------------
+  // 4. Output position for external visualizers (optional)
+  // ------------------------------------------------------
+  std::ofstream posFile("position.txt");
+  if (posFile.is_open()) {
+    posFile << x << "," << y;
+    posFile.close();
+  }
+
+  // ------------------------------------------------------
+  // 5. Slow down simulation (0.25s per step)
+  // ------------------------------------------------------
+  usleep(100000);
 }
